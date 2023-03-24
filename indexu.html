@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>My Map</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            position: relative;
+            height: 100vh;
+        }
+
+        #map {
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+        }
+
+        #sidebar {
+            width: 300px;
+            background-color: rgb(47, 46, 46);
+            color: white;
+            overflow: auto;
+            padding: 10px;
+            position: absolute;
+            top: 0;
+            left: -300px;
+            bottom: 0;
+            z-index: 1;
+            transition: left 0.5s;
+        }
+
+        #sidebar.show{
+            left: 0;
+        }
+
+        #toggle-sidebar{
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            border-radius: 5px;
+            padding: 7px;
+            background-color: black;
+            color: white;
+        }
+
+        button{
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        label{
+            display: block;
+            margin-top: 10px;
+        }
+
+        input[type="text"], select{
+            display: block;
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map">
+        {{ map_html | safe }}
+    </div>
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h1 style="margin-top: 20px; text-align: center;">Filters</h1>
+        </div>
+        <form id = "filter-form" method="POST">
+           <label for="Country">Country:</label>
+           <select id="Country" name="Country">
+            <option value="India">India</option>
+            <option value="USA">USA</option>
+           </select>
+           <label for="State">State:</label>
+           <select id="State" name="State">
+            <option value="ANDAMAN & NICOBAR">Andaman & Nicobar</option>
+            <option value="ANDHRA PRADESH">Andhra Pradesh</option>
+            <option value="ARUNACHAL PRADESH">Arunachal Pradesh</option>
+            <option value="ASSAM">Assam</option>
+            <option value="BIHAR">Bihar</option>
+            <option value="CHHATTISGARH">Chhattisgarh</option>
+            <option value="DELHI">Delhi</option>
+            <option value="GUJARAT">Gujarat</option>
+            <option value="HARYANA">Haryana</option>
+            <option value="HIMACHAL PRADESH">Himachal Pradesh</option>
+            <option value="JAMMU & KASHMIR">Jammu & Kashmir</option>
+            <option value="JHARKHAND">Jharkhand</option>
+            <option value="KARNATAKA">Karnataka</option>
+            <option value="KERALA">Kerala</option>
+            <option value="MADHYA PRADESH">Madhya Pradesh</option>
+            <option value="MAHARASHTRA">Maharashtra</option>
+            <option value="MANIPUR">Manipur</option>
+            <option value="MEGHALAYA">Meghalaya</option>
+            <option value="MIZORAM">Mizoram</option>
+            <option value="NAGALAND">Nagaland</option>
+            <option value="ORISSA">Odisha</option>
+            <option value="PUNJAB">Punjab</option>
+            <option value="RAJASTHAN">Rajasthan</option>
+            <option value="TAMIL NADU">Tamil Nadu</option>
+            <option value="TRIPURA">Tripura</option>
+            <option value="UTTARAKHAND">Uttarakhand</option>
+            <option value="UTTAR PRADESH">Uttar Pradesh</option>
+            <option value="WEST BENGAL">West Bengal</option>
+
+
+           </select>
+           <label for="Jio_Centre">Jio Centre:</label>
+           <select id="Jio_Centre" name="Jio_Centre">
+           </select>
+           <label for="Network_Technology">Network Technology:</label>
+           <select id="Network_Technology" name="Network_Technology">
+            <option value="5G">5G</option>
+            <option value="4G">4G</option>
+           </select>
+           <button type="submit" name="action" value="apply_filters" style="border-radius: 5px; margin-top: 12px; background-color: black; color: white; display: block; margin: 12px auto;">Apply Filters</button>
+        </form>
+    </div>
+    <button id="toggle-sidebar">Toggle</button>
+    <script>
+        document.getElementById('toggle-sidebar').addEventListener('click',function(){
+            document.getElementById('sidebar').classList.toggle('show');
+        });
+
+        // get references to the filter elements
+        const countrySelect = document.getElementById('Country');
+        const stateSelect = document.getElementById('State');
+        const jioCentreSelect = document.getElementById('Jio_Centre');
+        const networkTechnologySelect = document.getElementById('Network_Technology');
+
+        // create an object mapping each country to its corresponding states
+        const statesByCountry = {
+        'India': ['ANDAMAN & NICOBAR','ANDHRA PRADESH', 'ARUNACHAL PRADESH', 'ASSAM', 'BIHAR', 'CHHATTISGARH', 'DELHI', 'GUJARAT', 'HARYANA','HIMACHAL PRADESH', 'JAMMU & KASHMIR','JHARKHAND', 'KARNATAKA', 'KERALA', 'MADHYA PRADESH', 'MAHARASHTRA', 'MANIPUR', 'MEGHALAYA', 'MIZORAM', 'NAGALAND', 'ORISSA', 'PUNJAB', 'RAJASTHAN','TAMIL NADU','TRIPURA', 'UTTARAKHAND', 'UTTAR PRADESH','WEST BENGAL'],
+        'USA': ['New York', 'California', 'Texas', 'Florida']
+        };
+
+        // create an object mapping each state to its corresponding jio centres
+        const jioCentresByState = {
+            'ANDAMAN & NICOBAR':['Port Blair '],
+            'ANDHRA PRADESH': ['Adilabad ','Adoni ','Anantapur ','Bhimavaram ','Chilakaluripet ','Chittoor ','Dharmavaram ','Eluru ','Hyderabad ','Gudivada ','Guntakal ','Guntur ','Hindupur ','Kadapa ','Kakinada ','Karimnagar ','Khammam ','Kurnool ','Secunderabad ','Srikakulam ','Suryapet ','Tirupati ','Vijayawada ','Visakhapatnam ','Warangal '], 
+            'ARUNACHAL PRADESH': ['Pasighat ','Tawang ','Ziro ','Itanagar '], 
+            'ASSAM': ['Dibrugarh ','Guwahati ','Nagaon ','Silchar '], 
+            'BIHAR': ['Begusarai ','Buxar ','Gaya ','Patna '], 
+            'CHHATTISGARH': ['Ambikapur ','Bilaspur ','Raigarh ','Raipur '], 
+            'DELHI': ['Burari ','Hastsal ','Mustafabad ','New Delhi' ], 
+            'GUJARAT': ['Ahmedabad ','Bharuch ','Bhavnagar ','Gandhinagar ','Jamnagar ','Rajkot ','Surat ','Vadodara '], 
+            'HARYANA': ['Ambala ','Gurgaon ','Kaithal ','Panipat ','Rewari ','Rohtak ','Sonipat ','Thanesar '],
+            'HIMACHAL PRADESH': ['Shimla '], 
+            'JAMMU & KASHMIR': ['Anantnag ','Jammu ','Srinagar '],
+            'JHARKHAND': ['Adityapur ','Dhanbad ','Jamshedpur ','Ranchi '], 
+            'KARNATAKA': ['Belgaum ','Bengaluru ','Gulbarga ','Mangalore ','Mysore ','Raichur ','Shimoga ','Udupi '], 
+            'KERALA': ['Kochi ','Kozhikode ','Thiruvananthapuram ','Thrissur '], 
+            'MADHYA PRADESH': ['Bhopal ','Gwalior ','Indore ','Jabalpur ','Khandwa ','Neemuch ','Ratlam ','Ujjain '], 
+            'MAHARASHTRA': ['Mumbai ','Mira Bhayander ','Nagpur ','Pune ','Satara ','Thane ','Ulhasnagar ','Yavatmal '], 
+            'MANIPUR': ['Imphal '], 
+            'MEGHALAYA': ['Shillong '], 
+            'MIZORAM': ['Aizawl '], 
+            'NAGALAND': ['Dimapur '], 
+            'ORISSA': ['Bhadrak ','Bhubaneswar ','Cuttack ','Puri '],
+            'PUNJAB': ['Amritsar ','Jalandhar ','Ludhiana ','Pathankot '], 
+            'RAJASTHAN': ['Ajmer ','Bikaner ','Jaipur ','Jodhpur ','Kota ','Pali ','Sikar ','Udaipur '],
+            'TAMIL NADU': ['Chennai ','Coimbatore ','Kancheepuram ','Madurai ','Rajapalayam ','Thanjavur ','Tiruvannamalai ','Vellore '], 
+            'TRIPURA': ['Agartala '], 
+            'UTTARAKHAND': ['Dehradun ','Haldwani ','Hardwar ','Kashipur ','Roorkee ','Rudrapur '], 
+            'UTTAR PRADESH': ['Agra ','Aligarh ','Allahabad ','Azamgarh ','Bareilly ','Faizabad ','Fatehpur ','Gorakhpur ','Noida ','Hathras ','Jhansi ','Kanpur ','Lucknow ','Meerut ','Mirzapur ','Rae Bareli ','Unnao ','Varanasi '],
+            'WEST BENGAL':['Asansol ','Bally ','Barrackpur ','Darjiling ','Habra ','Kharagpur ','Kolkata ','Naihati ','Siliguri ','Titagarh ','Uttarpara Kotrung '],
+            'New York': ['New York City', 'Buffalo'],
+            'California': ['San Francisco', 'Los Angeles'],
+            'Texas': ['Houston', 'Austin'],
+            'Florida': ['Miami', 'Tampa']
+        };
+
+        // create an object mapping each network technology to its corresponding options
+        const optionsByNetworkTechnology = {
+        '5G': ['5G'],
+        '4G': ['4G'],
+        };
+
+        // update the state options when the country is changed
+        countrySelect.addEventListener('change', () => {
+        const selectedCountry = countrySelect.value;
+        const stateOptions = statesByCountry[selectedCountry].map(state => `<option value="${state}">${state}</option>`).join('');
+        stateSelect.innerHTML = stateOptions;
+        jioCentreSelect.innerHTML = '<option value="All">All</option>';
+        });
+
+        // update the jio centre options when the state is changed
+        stateSelect.addEventListener('change', () => {
+        const selectedState = stateSelect.value;
+        const jioCentreOptions = jioCentresByState[selectedState].map(jioCentre => `<option value="${jioCentre}">${jioCentre}</option>`).join('');
+        jioCentreSelect.innerHTML = jioCentreOptions;
+        });
+
+        // update the network technology options when the filter is changed
+        networkTechnologySelect.addEventListener('change', () => {
+        const selectedNetworkTechnology = networkTechnologySelect.value;
+        const networkTechnologyOptions = optionsByNetworkTechnology[selectedNetworkTechnology].map(option => `<option value="${option}">${option}</option>`).join('');
+        networkTechnologySelect.innerHTML = networkTechnologyOptions;
+        });
+
+    </script>
+</body>
+</html>
